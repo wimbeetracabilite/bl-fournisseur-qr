@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>🖨️ Générateur BL avec QR Code - [Cartonnages et Plastique WIMBEE]</title>
+    <title>🖨️ Générateur BL avec QR Code - Wimbée</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
     <style>
@@ -19,13 +19,16 @@
 </head>
 <body>
     <h1>🖨️ Générateur de Bon de Livraison avec QR Code</h1>
-    <p><strong>Pour [Cartonnages et Plastique WIMBEE]</strong> — Conforme BRC — Version 2.1</p>
+    <p><strong>Pour Wimbée</strong> — Conforme BRC — Version 3.0</p>
 
     <label>Code Fournisseur (ex: FR001) :</label>
     <input type="text" id="fournisseur" placeholder="FR001" required>
 
-    <label>Notre n° de référence client (à reprendre) :</label>
-    <input type="text" id="commande" placeholder="CMD-2025-001" required>
+    <label>N° de commande Wimbée :</label>
+    <input type="text" id="commande" placeholder="CMD-WIM-2025-001" required>
+
+    <label>N° de références Wimbée :</label>
+    <input type="text" id="ref_wimbee" placeholder="WIM-CAM-250" required>
 
     <label>Date de Livraison :</label>
     <input type="date" id="date" value="2025-04-05" required>
@@ -33,16 +36,18 @@
     <div id="mp-lines">
         <div class="mp-line">
             <h3>📦 Matière Première 1</h3>
-            <label>Référence(s) produit (ex: Boîte Camembert 250g) :</label>
-            <input type="text" class="ref_produit" placeholder="Boîte Camembert 250g" required>
-            <label>Lot Fournisseur :</label>
+            <label>Désignation produit (ex: Boîte Camembert 250g) :</label>
+            <input type="text" class="designation" placeholder="Boîte Camembert 250g" required>
+            <label>Réf produit (ex: WIM-CAM-250) :</label>
+            <input type="text" class="ref_produit" placeholder="WIM-CAM-250" required>
+            <label>N° de lot fournisseur :</label>
             <input type="text" class="lot_fourn" placeholder="LOTX7890" required>
             <label>Quantité :</label>
             <input type="number" class="quantite" placeholder="500" required> 
             <select class="unite">
                 <option value="kg">kg</option>
-                <option value="u">unités</option>
-                <option value="L">litres</option>
+                <option value="feuilles">feuilles</option>
+                <option value="litres">litres</option>
             </select>
             <label>Nombre de palettes :</label>
             <input type="number" class="palettes" placeholder="5" min="1" required>
@@ -53,6 +58,7 @@
     <button onclick="generateQR()">✅ Générer le QR Code + Bon de Livraison</button>
 
     <canvas id="qrcode" width="200" height="200"></canvas>
+
     <button class="btn-print" onclick="window.print()">🖨️ Imprimer ce Bon de Livraison</button>
 
     <script>
@@ -64,16 +70,18 @@
             div.className = 'mp-line';
             div.innerHTML = `
                 <h3>📦 Matière Première ${mpCount}</h3>
-                <label>Référence(s) produit (ex: Boîte Camembert 250g) :</label>
-                <input type="text" class="ref_produit" placeholder="ex: Boîte Brie 500g" required>
-                <label>Lot Fournisseur :</label>
+                <label>Désignation produit (ex: Boîte Brie 500g) :</label>
+                <input type="text" class="designation" placeholder="ex: Boîte Brie 500g" required>
+                <label>Réf produit (ex: WIM-BRI-500) :</label>
+                <input type="text" class="ref_produit" placeholder="ex: WIM-BRI-500" required>
+                <label>N° de lot fournisseur :</label>
                 <input type="text" class="lot_fourn" placeholder="ex: LOTY7891" required>
                 <label>Quantité :</label>
                 <input type="number" class="quantite" placeholder="500" required> 
                 <select class="unite">
                     <option value="kg">kg</option>
-                    <option value="u">unités</option>
-                    <option value="L">litres</option>
+                    <option value="feuilles">feuilles</option>
+                    <option value="litres">litres</option>
                 </select>
                 <label>Nombre de palettes :</label>
                 <input type="number" class="palettes" placeholder="5" min="1" required>
@@ -84,18 +92,21 @@
         function generateQR() {
             const fournisseur = document.getElementById('fournisseur').value;
             const commande = document.getElementById('commande').value;
+            const ref_wimbee = document.getElementById('ref_wimbee').value;
             const date = document.getElementById('date').value;
 
             const lots = [];
             document.querySelectorAll('.mp-line').forEach(line => {
+                const designation = line.querySelector('.designation').value;
                 const ref_produit = line.querySelector('.ref_produit').value;
                 const lot_fourn = line.querySelector('.lot_fourn').value;
                 const quantite = line.querySelector('.quantite').value;
                 const unite = line.querySelector('.unite').value;
                 const palettes = line.querySelector('.palettes').value;
 
-                if (ref_produit && lot_fourn && quantite && palettes) {
+                if (designation && ref_produit && lot_fourn && quantite && palettes) {
                     lots.push({
+                        designation_produit: designation,
                         reference_produit: ref_produit,
                         lot_fournisseur: lot_fourn,
                         quantite: parseFloat(quantite),
@@ -105,7 +116,7 @@
                 }
             });
 
-            if (!fournisseur || !commande || !date || lots.length === 0) {
+            if (!fournisseur || !commande || !ref_wimbee || !date || lots.length === 0) {
                 alert("❌ Veuillez remplir tous les champs obligatoires !");
                 return;
             }
@@ -113,7 +124,8 @@
             const data = {
                 type: "BL_FOURNISSEUR",
                 fournisseur_code: fournisseur,
-                commande_achat: commande,
+                commande_wimbee: commande,
+                reference_wimbee: ref_wimbee,
                 date_livraison: date,
                 lots: lots
             };
