@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>🖨️ Générateur BL avec QR Code - [Nom de ton entreprise]</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 30px auto; padding: 20px; }
+        h1 { color: #2c3e50; }
+        input, select { width: 100%; padding: 8px; margin: 5px 0 15px; border: 1px solid #ccc; }
+        button { background: #27ae60; color: white; padding: 12px 20px; border: none; cursor: pointer; font-size: 16px; }
+        button:hover { background: #229954; }
+        #qrcode { margin: 20px 0; text-align: center; }
+        .mp-line { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .btn-add { background: #3498db; }
+        .btn-print { background: #e67e22; }
+    </style>
+</head>
+<body>
+    <h1>🖨️ Générateur de Bon de Livraison avec QR Code</h1>
+    <p><strong>Pour [Nom de ton entreprise]</strong> — Conforme BRC — Version 2.1</p>
+
+    <label>Code Fournisseur (ex: FR001) :</label>
+    <input type="text" id="fournisseur" placeholder="FR001" required>
+
+    <label>Notre n° de référence client (à reprendre) :</label>
+    <input type="text" id="commande" placeholder="CMD-2025-001" required>
+
+    <label>Date de Livraison :</label>
+    <input type="date" id="date" value="2025-04-05" required>
+
+    <div id="mp-lines">
+        <div class="mp-line">
+            <h3>📦 Matière Première 1</h3>
+            <label>Référence(s) produit (ex: Boîte Camembert 250g) :</label>
+            <input type="text" class="ref_produit" placeholder="Boîte Camembert 250g" required>
+            <label>Lot Fournisseur :</label>
+            <input type="text" class="lot_fourn" placeholder="LOTX7890" required>
+            <label>Quantité :</label>
+            <input type="number" class="quantite" placeholder="500" required> 
+            <select class="unite">
+                <option value="kg">kg</option>
+                <option value="u">unités</option>
+                <option value="L">litres</option>
+            </select>
+            <label>Nombre de palettes :</label>
+            <input type="number" class="palettes" placeholder="5" min="1" required>
+        </div>
+    </div>
+
+    <button class="btn-add" onclick="addMPLine()">➕ Ajouter une ligne de matière</button>
+    <button onclick="generateQR()">✅ Générer le QR Code + Bon de Livraison</button>
+
+    <div id="qrcode"></div>
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimer ce Bon de Livraison</button>
+
+    <script>
+        let mpCount = 1;
+
+        function addMPLine() {
+            mpCount++;
+            const div = document.createElement('div');
+            div.className = 'mp-line';
+            div.innerHTML = `
+                <h3>📦 Matière Première ${mpCount}</h3>
+                <label>Référence(s) produit (ex: Boîte Camembert 250g) :</label>
+                <input type="text" class="ref_produit" placeholder="ex: Boîte Brie 500g" required>
+                <label>Lot Fournisseur :</label>
+                <input type="text" class="lot_fourn" placeholder="ex: LOTY7891" required>
+                <label>Quantité :</label>
+                <input type="number" class="quantite" placeholder="500" required> 
+                <select class="unite">
+                    <option value="kg">kg</option>
+                    <option value="u">unités</option>
+                    <option value="L">litres</option>
+                </select>
+                <label>Nombre de palettes :</label>
+                <input type="number" class="palettes" placeholder="5" min="1" required>
+            `;
+            document.getElementById('mp-lines').appendChild(div);
+        }
+
+        function generateQR() {
+            const fournisseur = document.getElementById('fournisseur').value;
+            const commande = document.getElementById('commande').value;
+            const date = document.getElementById('date').value;
+
+            const lots = [];
+            document.querySelectorAll('.mp-line').forEach(line => {
+                const ref_produit = line.querySelector('.ref_produit').value;
+                const lot_fourn = line.querySelector('.lot_fourn').value;
+                const quantite = line.querySelector('.quantite').value;
+                const unite = line.querySelector('.unite').value;
+                const palettes = line.querySelector('.palettes').value;
+
+                if (ref_produit && lot_fourn && quantite && palettes) {
+                    lots.push({
+                        reference_produit: ref_produit,
+                        lot_fournisseur: lot_fourn,
+                        quantite: parseFloat(quantite),
+                        unite: unite,
+                        nombre_palettes: parseInt(palettes)
+                    });
+                }
+            });
+
+            if (!fournisseur || !commande || !date || lots.length === 0) {
+                alert("❌ Veuillez remplir tous les champs obligatoires !");
+                return;
+            }
+
+            const data = {
+                type: "BL_FOURNISSEUR",
+                fournisseur_code: fournisseur,
+                commande_achat: commande,
+                date_livraison: date,
+                lots: lots
+            };
+
+            document.getElementById("qrcode").innerHTML = "";
+            QRCode.toCanvas(document.getElementById("qrcode"), JSON.stringify(data), { width: 200, height: 200 }, function (error) {
+                if (error) console.error(error);
+                else console.log("QR Code généré !");
+            });
+        }
+    </script>
+</body>
+</html>
